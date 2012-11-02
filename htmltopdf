@@ -1,0 +1,72 @@
+#!/usr/bin/env ruby
+#############################################################
+# Convert a directory of HTML files in to PDF files
+#
+# Converts the files in the path specified in to PDF files
+# which are placed in an output sub-directory. If the
+# output directory doesn't exist it will be created. Has
+# support for an optional prefix to append to the output
+# files.
+#
+# Usage:
+# htmltopdf <PATH TO HTML FILES> <OPTIONAL PREFIX>
+#
+# Requirements:
+# Needs the pdfkit gem and wkhtmltopdf converter from Google
+# code. If running on Windows, specify the path to the exe.
+#############################################################
+require 'pdfkit'
+
+# Uncomment and set path on Windows
+# PDFKit.configure do |config|
+#   config.wkhtmltopdf = 'C:\Ruby\wkhtmltopdf\wkhtmltopdf.exe'
+#    config.default_options = {
+#      :page_size => 'A4'
+#   }
+#   # config.root_url = "http://localhost" # Use only if your external hostname is unavailable on the server.
+# end
+
+# Grab the directory
+directory = ARGV[0]
+prefix = ARGV[1]
+
+abort("Please specify a directory") unless directory
+
+output = File.join(directory,'output')
+
+if not Dir.exist?(output)
+	Dir.mkdir(output, 0755)
+end
+
+# Change to the specified directory
+Dir.chdir(directory)
+
+# Go through the files in the directory and
+# use mysqlimport to import the CSV files
+Dir.foreach(directory) do |dir|
+	if dir =~ /\.htm(l|)$/i
+		puts 'Converting.....'
+		puts dir
+
+		# Change any bad characters in the file name
+		new_file = dir.gsub(' ', '_')
+		new_file.gsub!('@', '_')
+		new_file.gsub!('(', '_')
+		new_file.gsub!(')', '_')
+
+		# Does it need a prefix?
+		if prefix
+			new_file = prefix+new_file
+		end
+
+		# Change file exentsion
+		new_file.gsub!('.html', '.pdf') # try this first as its the longer of the two
+		new_file.gsub!('.htm', '.pdf')
+
+		# Grab the file, convert and output to PDF
+		html_file = File.new(File.join(directory, dir))
+		kit = PDFKit.new(html_file)
+		kit.to_pdf # inline PDF
+		kit.to_file(File.join(output, new_file))
+	end
+end
